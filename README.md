@@ -3,6 +3,6 @@ Automatically downloading audio podcasts and cleaning up the ID3V2 tags in the m
 
 Requires id3v2 : http://sourceforge.net/projects/id3v2/
 
-Run the podjob script in your cronjob. I have it set like this:
+Run the podjob script in your cronjob. I have it set like this (checking every hour for new files):
+
 01 * * * * /home/micz/podjob/podjob
-(checking every hour for new files)
