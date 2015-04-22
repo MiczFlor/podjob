@@ -1,0 +1,1 @@
+This folder contains the MP3 files. I keep the folder separate from the apache htdocs directory and instead create a link to this folder. If you decide to do the same, make sure your apache config follows symlinks.
