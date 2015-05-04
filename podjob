@@ -4,9 +4,8 @@
 error_reporting(E_ERROR | E_WARNING | E_PARSE); // suppress notices until I figured out how to check if var exists in xpath
 
 # GLOBAL SETTINGS
-// locations and folders
-// READ CONFIG INI FILE
-$VAR = parse_ini_file("config.ini",1);
+// READ CONFIG INI FILE - add the absolute link here, because the script will be called by cron
+$VAR = parse_ini_file("/home/micz/podjob/config.ini",1);
 
 ######### DON'T CHANGE ANYTHING BENEATH THIS LINE UNLESS YOU KNOW WHY AND LET ME KNOW TO IMPROVE THE CODE #
 
@@ -38,7 +37,6 @@ foreach($PODCASTS as $podcast => $values) {
 
 # LOOP THROUGH PODCASTS
 foreach($PODCASTS as $podcast => $v) {
-  print_r($v);
   $logwrite = logwrite("#########################################################", 5);
   $logwrite = logwrite("### START PODCAST '".$podcast."'", 1);
   
@@ -114,8 +112,8 @@ foreach($PODCASTS as $podcast => $v) {
       
       ### CHECK FOR RENAMING AND GET NEW FILE NAME NOW
       if(isset($OPTPOD['rename'])) {
-        print $OPTPOD['rename']."\n";//???
         $rssinfo['rename'] = filerename($rssinfo['enclosure_filename']);
+        //print $rssinfo['rename']."\n";//???
       }
       
       ### CHECK IF ENCLOSURE IS SET WITH URL
@@ -163,8 +161,7 @@ foreach($PODCASTS as $podcast => $v) {
               }
             }
             $logwrite = logwrite("Options set to overwrite existing target file '".$itemlocalfile."'", 5);
-          } else {
-          }
+          } 
         }
         
         #### CHECK NOW IF WE ARE STILL MEANT TO DOWNLOAD THE FILE
@@ -351,7 +348,6 @@ function filerename($basename) {
   global $rssinfo;
   // take file ending off the filename so we can append it at new name
   $file_parts = pathinfo($basename);
-  //print_r($file_parts); // ???
   $searchreplace = array(
     "%podyear%" => date('Y', strtotime($rssinfo['pubDate'])),
     "%podmonth%" => date('m', strtotime($rssinfo['pubDate'])),
@@ -624,6 +620,5 @@ function removeslashes($string)
     $string=implode("",explode("\\",$string));
     return stripslashes(trim($string));
 }
-
 
 ?>
