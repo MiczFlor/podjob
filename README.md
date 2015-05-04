@@ -14,3 +14,4 @@ TODO (22 April 2015):
 * automatic renaming files after download
 * downloading deleted files if available
 * podcast creation script for downloaded and processed mp3 files
+* skip download if podjob can not create local folders and files
