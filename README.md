@@ -9,7 +9,7 @@ Run the podjob script in your cronjob. I have it set like this (checking every h
 
 01 * * * * /home/micz/podjob/podjob
 
-TODO (22 April 2015):
+TODO (4 May 2015):
 
 * automatic renaming files after download
 * downloading deleted files if available
