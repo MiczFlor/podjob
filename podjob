@@ -52,7 +52,7 @@ foreach($PODCASTS as $podcast => $v) {
     unlink($localpodxml);
     $PROGRESS['downloadpodcast'] = "false"; // keep abort in mind for later
   } else {
-  $logwrite = logwrite("SUCCESS downloaded XML : ".$v['podcasturl'], 3);
+    $logwrite = logwrite("SUCCESS downloaded XML : ".$v['podcasturl'], 3);
   }
 
   ## READ FROM PODCAST
@@ -331,7 +331,7 @@ foreach($PODCASTS as $podcast => $v) {
   } // end "if" podcast download == true|false
   
   ## DELETE TEMP COPY OF PODCAST
-  //unlink($localpodxml);
+  unlink($localpodxml);
   $logwrite = logwrite("Deleted local temp copy of podcast '".$localpodxml."'", 4);
 
   $logwrite = logwrite("### FINISHED PODCAST '".$podcast."'", 2);
@@ -615,10 +615,10 @@ function foldercreate($folder) {
 }
 
 // get rid off multiple backslashes like: This isn\\\\\'t working
-function removeslashes($string)
-{
-    $string=implode("",explode("\\",$string));
-    return stripslashes(trim($string));
+function removeslashes($string) {
+  $string=implode("",explode("\\",$string));
+  return stripslashes(trim($string));
 }
+
 
 ?>
