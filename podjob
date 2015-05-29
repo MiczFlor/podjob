@@ -48,11 +48,11 @@ foreach($PODCASTS as $podcast => $v) {
   exec("wget -O ".$localpodxml." ".$v['podcasturl']."  >> /dev/null 2>&1");
   // check if XML was retrieved by checking if filesize == 0?
   if (filesize($localpodxml) == 0) {
-    $logwrite = logwrite("ERROR downloading XML (filesize == 0) : ".$v['podcasturl'], 2);
+    $logwrite = logwrite("ERROR downloading XML (filesize == 0) : ".$v['podcasturl'], 1);
     unlink($localpodxml);
     $PROGRESS['downloadpodcast'] = "false"; // keep abort in mind for later
   } else {
-    $logwrite = logwrite("SUCCESS downloaded XML : ".$v['podcasturl'], 3);
+    $logwrite = logwrite("INFO: successfully downloadeded XML : ".$v['podcasturl'], 4);
   }
 
   ## READ FROM PODCAST
@@ -67,25 +67,26 @@ foreach($PODCASTS as $podcast => $v) {
     // write podcast specific options if non existent
     if(!file_exists($VAR['nonwwwbaseloc']."/".$v['folder']."/options.ini")) {
       if (!copy($VAR['options'], $VAR['nonwwwbaseloc']."/".$v['folder']."/options.ini")) {
-        $logwrite = logwrite("ERROR creating options file for '".$podcast."'", 2);
+        $logwrite = logwrite("ERROR creating options file for '".$podcast."'", 1);
       } else {
-        $logwrite = logwrite("SUCCESS creating options file for '".$podcast."'", 3);
+        $logwrite = logwrite("INFO: successfully created options file for '".$podcast."'", 4);
       }
     } else {
-      $logwrite = logwrite("Options file exists, none created for '".$podcast."'", 5);
+      $logwrite = logwrite("INFO: Options file exists, none created for '".$podcast."'", 4);
     }
 
     ### CHECK FOR PODCAST SPECIFIC SETTINGS AND OVERWRITE GLOBAL IF FOUND
     // first, set local version of OPT for this podcast
     $OPTPOD = $OPT;
     if(file_exists($VAR['nonwwwbaseloc']."/".$v['folder']."/options.ini") && $PROGRESS['downloadpodcast'] == "true" ) {
-      $logwrite = logwrite("Reading specific options for '".$podcast."'");
+      $logwrite = logwrite("INFO: reading specific options for '".$podcast."'", 4);
       $OPTTEMP = parse_ini_file($VAR['nonwwwbaseloc']."/".$v['folder']."/options.ini",1);
       // overwrite global options (one by one, so we don't lose any global options if not specified locally)
       foreach($OPTTEMP as $key => $value) {
         $OPTPOD[$key] = $value;
       }
     }
+    print_r($OPTPOD); //???
     
     ### GET LIST OF ALL ITEMS IN PODCAST
     // extract the items from the original XML podcast
@@ -110,12 +111,6 @@ foreach($PODCASTS as $podcast => $v) {
         }
       }
       
-      ### CHECK FOR RENAMING AND GET NEW FILE NAME NOW
-      if(isset($OPTPOD['rename'])) {
-        $rssinfo['rename'] = filerename($rssinfo['enclosure_filename']);
-        //print $rssinfo['rename']."\n";//???
-      }
-      
       ### CHECK IF ENCLOSURE IS SET WITH URL
       if(!isset($rssinfo['enclosure_url'])) {
         // there is no URL linked in the item. Can't do anything.
@@ -123,17 +118,25 @@ foreach($PODCASTS as $podcast => $v) {
       } else { // URL for audio file found, Off we go.
         #### VARIABLES FOR THE PODCAST ITEM
         // create some variables in the beginning to make code more legible
-        $itemlocalfile = $VAR['wwwbaseloc']."/".$v['folder']."/".$rssinfo['enclosure_filename']; // the audio file will be saved here
-        $itemlocalfileini = $VAR['nonwwwbaseloc']."/".$v['folder']."/".$rssinfo['enclosure_filename'].".ini"; // the options ini file will be saved here
-        $itemlocalfilexmldir = $VAR['nonwwwbaseloc']."/".$v['folder']."/rss"; // the xml snippets will be saved here
+        $itemlocal['file'] = $VAR['wwwbaseloc']."/".$v['folder']."/".$rssinfo['enclosure_filename']; // the audio file will be saved here
+        $itemlocal['fileini'] = $VAR['nonwwwbaseloc']."/".$v['folder']."/".$rssinfo['enclosure_filename'].".ini"; // the options ini file will be saved here
+        $itemlocal['filexmldir'] = $VAR['nonwwwbaseloc']."/".$v['folder']."/rss"; // the xml snippets will be saved here
         $podcastlocallogdownload = $VAR['nonwwwbaseloc']."/".$v['folder']."/download.log"; // the download log for downloaded and renamed files
         
+        ### CHECK FOR RENAMING AND GET NEW FILE NAME NOW
+        if(isset($OPTPOD['rename'])) {
+          $rssinfo['rename'] = filerename($rssinfo['enclosure_filename']);
+          //print $rssinfo['enclosure_filename'] . " - " . $rssinfo['rename']."\n";//???
+          $itemlocal['file'] = $VAR['wwwbaseloc']."/".$v['folder']."/".$rssinfo['rename']; // the audio file will be saved here
+          $itemlocal['fileini'] = $VAR['nonwwwbaseloc']."/".$v['folder']."/".$rssinfo['rename'].".ini"; // the options ini file will be saved here
+        }
+        
         #### CHECK IF FILE DOWNLOAD IS IN PROGRESS
-        // read ini for enclosure audio file
-        if(!file_exists($itemlocalfileini)) {
-          $logwrite = logwrite("No status found for file '".$rssinfo['enclosure_filename']."'");
+        // read ini for enclosure file
+        if(!file_exists($itemlocal['fileini'])) {
+          $logwrite = logwrite("No status found for file '".$rssinfo['enclosure_filename']."'", 5);
         } else {
-          $filestatus = parse_ini_file($itemlocalfileini,1);
+          $filestatus = parse_ini_file($itemlocal['fileini'],1);
           if($filestatus['status'] == "downloading") { // => download in progress
             $PROGRESS['downloadfile'] = "false"; // currently downloading, so don't download
             $logwrite = logwrite("Skipping Download. Progress status set to 'downloading' for file '".$rssinfo['enclosure_filename']."'", 4);
@@ -149,24 +152,23 @@ foreach($PODCASTS as $podcast => $v) {
             // this checks the original enclosure URL and is safer in case of renaming files after downloading
             if(file_exists($podcastlocallogdownload)) { // download log exists
               if( exec('grep '.escapeshellarg($rssinfo['enclosure_url']."||").' '.$podcastlocallogdownload)) {
-                // TODO check here if file exists, if not, check if "re download" is set in settings file
-                $logwrite = logwrite("Skipping Download. File found in download log '".$rssinfo['enclosure_url']."'", 4);
+                $logwrite = logwrite("NOTE: Skipping Download. File found in download log '".$rssinfo['enclosure_url']."'", 3);
                 $PROGRESS['downloadfile'] = "false"; // not allowed to overwrite
               } 
             } else { 
               // b. check if file exists, if download log does not exist 
-              if(file_exists($itemlocalfile)) {
-                $logwrite = logwrite("Skipping Download. File exists '".$itemlocalfile."'", 4);
+              if(file_exists($itemlocal['file'])) {
+                $logwrite = logwrite("NOTE: Skipping Download. File exists '".$itemlocal['file']."'", 3);
                 $PROGRESS['downloadfile'] = "false"; // not allowed to overwrite
               }
             }
-            $logwrite = logwrite("Options set to overwrite existing target file '".$itemlocalfile."'", 5);
+            $logwrite = logwrite("INFO: Options set to overwrite existing target file '".$itemlocal['file']."'", 4);
           } 
         }
         
         #### CHECK NOW IF WE ARE STILL MEANT TO DOWNLOAD THE FILE
         if($PROGRESS['downloadfile'] == "false") {
-          $logwrite = logwrite("WARNING. Download #".$counter." skipped for reasons found in options or the like. File: '".$itemlocalfile."'", 3);
+          $logwrite = logwrite("WARNING: Download #".$counter." skipped for reasons found in options or the like. File: '".$itemlocal['file']."'", 2);
         } else {      
           ##### SET FILE STATUS TO 'DOWNLOADING'
           // we do this by creating an ini config file with the name of the audio file
@@ -176,19 +178,19 @@ foreach($PODCASTS as $podcast => $v) {
             "enclosure_url" => $rssinfo['enclosure_url']
           );
           // write this array to ini file inside podcast folder
-          $array2ini = array2ini($itemlocalfileini, $filestatus);
+          $array2ini = array2ini($itemlocal['fileini'], $filestatus);
           
           #### START DOWNLOADING FILE      
           // we could make this a background process (and might do so at a later stage)
           // but for now this is all linear, one after the other. Get the file first, modify it, then on to the next.
           $logwrite = logwrite("Start download #".$counter." - file '".$rssinfo['enclosure_url']."'");
-          exec("wget -O ".$itemlocalfile." ".$rssinfo['enclosure_url']."  >> /dev/null 2>&1");
+          exec("wget -O ".$itemlocal['file']." ".$rssinfo['enclosure_url']."  >> /dev/null 2>&1");
           
           #### WRITE HEADER, CHANNEL AND ITEM XML AFTER SUCCESSFUL DOWNLOAD
-          file_put_contents($itemlocalfilexmldir."/".$rssinfo['enclosure_filename'].".xml", $rssxmlarray['items'][($counter - 1)]);
-          file_put_contents($itemlocalfilexmldir."/_CHANNEL.xml", $rssxmlarray['channel']);
-          file_put_contents($itemlocalfilexmldir."/_HEADER.xml", $rssxmlarray['header']);
-          $logwrite = logwrite("Wrote XML of podcast for #".$counter." - file '".$rssinfo['enclosure_url']."' to '".$itemlocalfilexmldir."/".$rssinfo['enclosure_filename'].".xml'", 4);
+          file_put_contents($itemlocal['filexmldir']."/".$rssinfo['enclosure_filename'].".xml", $rssxmlarray['items'][($counter - 1)]);
+          file_put_contents($itemlocal['filexmldir']."/_CHANNEL.xml", $rssxmlarray['channel']);
+          file_put_contents($itemlocal['filexmldir']."/_HEADER.xml", $rssxmlarray['header']);
+          $logwrite = logwrite("INFO: Wrote XML of podcast for #".$counter." - file '".$rssinfo['enclosure_url']."' to '".$itemlocal['filexmldir']."/".$rssinfo['enclosure_filename'].".xml'", 4);
 
           #### LOG DOWNLOADED FILE
           // check if log file exists
@@ -201,12 +203,16 @@ foreach($PODCASTS as $podcast => $v) {
             } 
           } 
           if($PROGRESS['logdownload'] == "true") {
-            // no log file found
             // appending original enclosure URL to download log file in podcast folder
             $logmessage = $rssinfo['enclosure_url']."||".date("r")."\n";
             // using the FILE_APPEND flag to append the content to the end of the file
             // and the LOCK_EX flag to prevent anyone else writing to the file at the same time
             file_put_contents($podcastlocallogdownload, $logmessage, FILE_APPEND | LOCK_EX);
+            // add renaming of original file IF
+            if(isset($rssinfo['rename'])) {
+              $logmessage = $rssinfo['enclosure_url']."||RENAME||".$rssinfo['rename']."||".date("r")."\n";
+              file_put_contents($podcastlocallogdownload, $logmessage, FILE_APPEND | LOCK_EX);
+            }
           }
           
           ##### SET FILE TO 'IN PROGRESS - SET ID3V2'
@@ -216,19 +222,19 @@ foreach($PODCASTS as $podcast => $v) {
             "enclosure_url" => $rssinfo['enclosure_url']
           );
           // write this array to ini file inside podcast folder
-          $array2ini = array2ini($itemlocalfileini, $filestatus);
+          $array2ini = array2ini($itemlocal['fileini'], $filestatus);
           
           ##### CONVERT EXISTING FILE METADATA TO LATEST ID3V2 VERSION
-          $exec = "id3v2 -C ".$itemlocalfile; // convert all tags to ID3V2
+          $exec = "id3v2 -C ".$itemlocal['file']; // convert all tags to ID3V2
           exec($exec);
           // delete all ID3 v1 tags
-          $exec = "id3v2 -s ".$itemlocalfile; 
+          $exec = "id3v2 -s ".$itemlocal['file']; 
           exec($exec);
           
           $id3tags = array(); // the values to assign to the existing mp3 file
           
           ##### READ EXISTING FILE METADATA
-          $exec = "id3v2 -R ".$itemlocalfile;
+          $exec = "id3v2 -R ".$itemlocal['file'];
           // getting id3 tags in a string
           $lines = explode("\n",shell_exec($exec));
           foreach($lines as $line){
@@ -283,7 +289,7 @@ foreach($PODCASTS as $podcast => $v) {
             // removing has to be done in this loop, which is more CPU and time consuming, but that's how id3v2 works
             // to only remove what is really necessary, check with id3 frames found in file
             if(array_key_exists ( $key , $id3tags['file'] )) {
-              $exec = "id3v2 -r \"".$key."\" ".$itemlocalfile;
+              $exec = "id3v2 -r \"".$key."\" ".$itemlocal['file'];
               exec($exec);
             }
           }
@@ -299,21 +305,19 @@ foreach($PODCASTS as $podcast => $v) {
             }
             $exec .= "--".$key." \"".$value."\" ";
           }
-          $exec .= $itemlocalfile;
+          $exec .= $itemlocal['file'];
           exec($exec);
           
-          $logwrite = logwrite("SUCCESS writing ID3 tags to file '".$itemlocalfile."'"); 
-          $logwrite = logwrite("See ID3 tags with 'id3v2 -R ".$itemlocalfile ."'");                   
-          
-          ##### RENAME FILE IF REQUESTED
-          // TODO later
+          $logwrite = logwrite("INFO: successfully written ID3 tags to file '".$itemlocal['file']."'", 4); 
+          $logwrite = logwrite("See ID3 tags with 'id3v2 -R ".$itemlocal['file'] ."'", 5); 
           
           #####  CHANGE FILE DATE TO 'PUBDATE'
           // reset file date for testing: uncomment next line. Will set file date to 1st Jan 1999 1am 01:01
           //$rssinfo['filedate_touch'] = "199901010101.01";
-          $exec = "touch -t ".$rssinfo['filedate_touch']." ".$itemlocalfile;
+          $exec = "touch -t ".$rssinfo['filedate_touch']." ".$itemlocal['file'];
           exec($exec);
-          $logwrite = logwrite("SUCCESS trying to change date / touch for file #".$counter." - file '".$itemlocalfile."'");
+          $logwrite = logwrite("INFO: successfully changed date / touch for file #".$counter." - file '".$itemlocal['file']."'", 4);
+          $logwrite = logwrite($exec, 5);
           
           ##### SET FILE STATUS TO 'SUCCESS'
           // this status is needed to show all 
@@ -324,7 +328,11 @@ foreach($PODCASTS as $podcast => $v) {
             "enclosure_url" => $rssinfo['enclosure_url']
           );
           // write this array to ini file inside podcast folder
-          $array2ini = array2ini($itemlocalfileini, $filestatus);
+          $array2ini = array2ini($itemlocal['fileini'], $filestatus);                  
+          
+          ##### RENAME FILE IF REQUESTED
+          // TODO later
+
         } // end "if" download file == true|false
       } // end "if" enclosure_url exists
     } // end foreach item
@@ -332,9 +340,9 @@ foreach($PODCASTS as $podcast => $v) {
   
   ## DELETE TEMP COPY OF PODCAST
   unlink($localpodxml);
-  $logwrite = logwrite("Deleted local temp copy of podcast '".$localpodxml."'", 4);
+  $logwrite = logwrite("INFO: Deleted local temp copy of podcast '".$localpodxml."'", 4);
 
-  $logwrite = logwrite("### FINISHED PODCAST '".$podcast."'", 2);
+  $logwrite = logwrite("### FINISHED PODCAST '".$podcast."'", 5);
 }
 
 $logwrite = logwrite("DONE \n", 5);
@@ -345,6 +353,8 @@ $logwrite = logwrite("DONE \n", 5);
 // create new filename for renaming
 function filerename($basename) {
   global $OPTPOD;
+  global $PODCASTS;
+  global $podcast;
   global $rssinfo;
   // take file ending off the filename so we can append it at new name
   $file_parts = pathinfo($basename);
@@ -361,22 +371,22 @@ function filerename($basename) {
     "%nowhour24%" => date('H'),
     "%nowmin%" => date('i'),
     "%nowsec%" => date('s'),
-    "%filename%" => $file_parts['filename'] // the filename is the basename without the extension
+    "%filename%" => $file_parts['filename'], // the filename is the basename without the extension
+    "%podcastname%" => $podcast, // podcast name as set in the serverlist.ini file
+    "%podcastfolder%" => $PODCASTS[$podcast]['folder'] // podcast folder name as set in the serverlist.ini file
   );
+  // create the new name with a funky array flip flop
   $search = array_keys($searchreplace);
   $replace = array_values($searchreplace);
   $return = str_replace ( $search , $replace , $OPTPOD['rename'] );
+  // set extension to default from options.ini - and overwrite in the following "if" if needed
+  $ext = ".".$OPTPOD['extension'];
   if($file_parts['extension']) {
-    // now chop off the extension if identical with the one in the filename
-    //$return =  substr_replace($return, $file_parts['extension'], 0, strlen($file_parts['extension']));
+    // set file extension as found on file
     $ext = ".".$file_parts['extension'];
-    if (substr($return,-strlen($ext))===$ext) {
-      $return = substr($return, 0, strlen($return)-strlen($ext));
-    }
-    // add file extension
-    $return .= $ext;
   }
-  //print $filename." ".$OPTPOD['rename']." ".$return."\n";//???
+  // add file extension
+  $return .= $ext;
   return $return;
 }
 // write flat ini config file from array
@@ -386,10 +396,10 @@ function array2ini($file, $array) {
     $ini .= $key." = \"".$value."\"\n";
   }
   if(!file_put_contents($file, $ini)) {
-    $logwrite = logwrite("FUNCTION ".__FUNCTION__." : ERROR writing status to file '".$file."'");
+    $logwrite = logwrite("ERROR: FUNCTION ".__FUNCTION__." : ERROR writing status to file '".$file."'", 1);
     return "false";
   } else {
-    $logwrite = logwrite("FUNCTION ".__FUNCTION__." : SUCCESS writing status to file '".$file."'");
+    $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : SUCCESS writing status to file '".$file."'", 4);
     return "true";
   }
 }
@@ -442,7 +452,7 @@ function xmlchannel2array($channel, $xpath) {
   foreach($keys as $key) {
     if($return[$key] = $xpath->query( $key, $channel)->item(0)->nodeValue) {
     } else {
-      $logwrite = logwrite("FUNCTION ".__FUNCTION__." : PHP Notice: Trying to get property '".$key."' of non-object", 4);
+      $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : PHP Notice: Trying to get property '".$key."' of non-object", 4);
     }
     // and crop this of extra baggage
     $return[$key] = trim(strip_tags($return[$key]));
@@ -462,7 +472,7 @@ function xmlchannel2array($channel, $xpath) {
   foreach($keys as $key) {
     if($return[$key] == "") {
       unset($return[$key]);
-      $logwrite = logwrite("FUNCTION ".__FUNCTION__." : Item field '".$key."' is empty, non existent or can not be read");
+      $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : Item field '".$key."' is empty, non existent or can not be read", 4);
     }
   }
   return $return;
@@ -487,7 +497,7 @@ function xmlitem2array($item, $xpath) {
   foreach($keys as $key) {
     if($return[$key] = $xpath->query( $key, $item)->item(0)->nodeValue) {
     } else {
-      $logwrite = logwrite("FUNCTION ".__FUNCTION__." : PHP Notice: Trying to get property '".$key."' of non-object", 4);
+      $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : PHP Notice: Trying to get property '".$key."' of non-object", 4);
     }
     // and crop this of extra baggage
     $return[$key] = trim(strip_tags($return[$key]));
@@ -521,7 +531,7 @@ function xmlitem2array($item, $xpath) {
   foreach($keys as $key) {
     if($return[$key] == "") {
       unset($return[$key]);
-      $logwrite = logwrite("FUNCTION ".__FUNCTION__." : Item field '".$key."' is empty, non existent or can not be read");
+      $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : Item field '".$key."' is empty, non existent or can not be read", 4);
     }
   }
   return $return;
@@ -592,6 +602,7 @@ function logwrite($message, $loglevel = 5) {
       if($VAR['logscreen'] == "true") { // check if we should also display on screen (running from the command line)
         echo $message."\n";
       }
+      // todo: writing log file
     }
   } 
   return "true";
@@ -602,13 +613,13 @@ function foldercreate($folder) {
   $return = "false"; // the return value of this function
   if (!file_exists($folder)) {
     if(!mkdir($folder, 0777, true)) {
-      $logwrite = logwrite("FUNCTION ".__FUNCTION__." : ERROR creating folder : ".$folder);
+      $logwrite = logwrite("ERROR in FUNCTION ".__FUNCTION__." : ERROR creating folder : ".$folder, 1);
     } else {
-      $logwrite = logwrite("FUNCTION ".__FUNCTION__." : SUCCESS creating folder : ".$folder);
+      $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : SUCCESS creating folder : ".$folder, 4);
       $return = "true";
     }
   } else {
-    $logwrite = logwrite("FUNCTION ".__FUNCTION__." : folder already exists : ".$folder);
+    $logwrite = logwrite("INFO: FUNCTION ".__FUNCTION__." : folder already exists : ".$folder, 4);
     $return = "true";
   }
   return $return;
