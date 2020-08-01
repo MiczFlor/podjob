@@ -1,11 +1,17 @@
 #!/usr/bin/php
 <?php
+# this script needs to be started with the absolute path to the config.ini file like this:
+# ./podjob --config=/home/micz/Documnts/github/podjob/config.ini
+
+# read config location
+$val = getopt(null, ["config:"]);
+#print $val['config'];
 
 error_reporting(E_ERROR | E_WARNING | E_PARSE); // suppress notices until I figured out how to check if var exists in xpath
 
 # GLOBAL SETTINGS
 // READ CONFIG INI FILE - add the absolute link here, because the script will be called by cron
-$VAR = parse_ini_file("/home/micz/podjob/config.ini",1);
+$VAR = parse_ini_file($val['config'],1);
 
 ######### DON'T CHANGE ANYTHING BENEATH THIS LINE UNLESS YOU KNOW WHY AND LET ME KNOW TO IMPROVE THE CODE #
 

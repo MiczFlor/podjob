@@ -1,14 +1,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; FOLDERS
 
-; inside this folder will be the podcasts, each with a folder
-baseloc = "/home/micz/podjob"
+; the location of the podjob repo
+baseloc = "/home/micz/Documents/github/podjob"
 
 ; inside this folder will be the podcasts, each with a folder
-wwwbaseloc = "/home/micz/podjob/www"
+wwwbaseloc = "/home/micz/Documents/github/podjob/www"
 
 ; location for everything outside www reach (like config, metadata)
-nonwwwbaseloc = "/home/micz/podjob/data"
+nonwwwbaseloc = "/home/micz/Documents/github/podjob/data"
 
 ; tempfolder to temporarily store downloads like podcasts
 tempfolder = "/tmp"
@@ -34,7 +34,7 @@ options = "options.ini"
 ; 3 = NOTE report also information regarding the process
 ; 4 = INFO report also general information and success
 ; 5 = also add helpful styling to make it easier to read, such as lines of ######
-loglevel = "2"
+loglevel = "5"
 
 ; display logging information on screen? (true|false)
 logscreen = "true"

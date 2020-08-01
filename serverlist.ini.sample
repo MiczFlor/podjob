@@ -1,0 +1,19 @@
+; [Serial]
+; podcasturl = "http://feeds.serialpodcast.org/serialpodcast"
+; folder = "Serial"
+
+; [Pumuckl BR]
+; podcasturl = "http://feeds.br.de/pumuckl/feed.xml"
+; folder = "Pumuckl"
+
+; [BR Geschichten für Kinder]
+; podcasturl = "http://feeds.br.de/geschichten-fuer-kinder/feed.xml"
+; folder = "BR-geschichten-fuer-kinder"
+
+;[This American Life]
+;podcasturl = "http://feeds.thisamericanlife.org/talpodcast"
+;folder="This American Life"
+
+;[Car Talk]
+;podcasturl = "http://www.npr.org/templates/rss/podcast.php?id=510208"
+;folder = "Car Talk"
